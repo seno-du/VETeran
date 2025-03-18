@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jjangtrio.veteran.ServerApplication.dao.MessageDAO">
+
+    <!-- 전체 메시지 조회 -->
+    <select id="findAllMessages" resultType="messagedto">
+        SELECT * FROM MESSAGE
+    </select>
+
+    <!-- 특정 채팅방의 메시지 조회 -->
+    <select id="findMessagesByChatRoom" resultType="messagedto">
+        SELECT * FROM MESSAGE 
+        WHERE chatroomNum = #{chatroomNum}
+    </select>
+
+    <!-- 메시지 저장 -->
+    <insert id="insertMessages">
+        INSERT INTO MESSAGE (chatroomNum, managerNum, messageContent, messageCreatedAt, messagetype, messageState)
+        VALUES 
+        <foreach collection="list" item="message" separator=",">
+            (#{message.chatroomNum}, #{message.managerNum}, #{message.messageContent}, 
+            #{message.messageCreatedAt}, #{message.messagetype}, #{message.messageState})
+        </foreach>
+    </insert>
+
+    <!-- 메시지 상태 업데이트 -->
+    <update id="updateMessageState">
+        UPDATE MESSAGE SET messageState = #{messageState} WHERE messageNum = #{messageNum} AND managerNum = #{managerNum}
+    </update>
+
+    <!-- 메시지 번호로 메시지 조회 -->
+    <select id="findMessageByNum" resultType="messagedto">
+        SELECT messageNum, chatroomNum, managerNum, messageContent, messageCreatedAt, messagetype, messageState 
+        FROM MESSAGE 
+        WHERE messageNum = #{messageNum}
+    </select>
+
+    <select id="countUnreadMessages" resultType="int">
+        SELECT COUNT(*)
+        FROM MESSAGE
+        WHERE chatroomNum = #{chatroomNum}
+        AND managerNum != #{managerNum}
+        AND messageState = '보냄'
+    </select>
+
+
+    <!-- 읽지 않은 메시지를 읽음 처리 -->
+    <update id="updateMessagesToRead">
+        UPDATE MESSAGE
+        SET messageState = '읽음'
+        WHERE chatroomNum = #{chatroomNum}
+        AND managerNum != #{managerNum}
+        AND messageState != '읽음'
+    </update>
+
+    <!-- 안 읽은 전체 메시지 수 조회 -->
+    <select id="countAllUnreadMessages" resultType="int">
+        SELECT COUNT(*)
+        FROM MESSAGE
+        WHERE messageState = '보냄'
+          AND managerNum != #{managerNum}
+          AND chatroomNum IN (
+            SELECT chatroomNum
+            FROM CHATROOMMEMBER
+            WHERE managerNum = #{managerNum}
+          )
+    </select>
+
+    <!-- 읽은 전체 메세지 수 -->
+    <select id="countReadMessages" resultType="int">
+        SELECT COUNT(*)
+        FROM MESSAGE
+        WHERE messageState = '읽음'
+          AND managerNum != #{managerNum}
+          AND chatroomNum IN (
+            SELECT chatroomNum
+            FROM CHATROOMMEMBER
+            WHERE managerNum = #{managerNum}
+          )
+    </select>
+    
+</mapper>

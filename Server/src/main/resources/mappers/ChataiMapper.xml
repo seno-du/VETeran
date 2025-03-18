@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jjangtrio.veteran.ServerApplication.dao.ChataiDAO">
+
+    <insert id="saveChatHistory" parameterType="map" useGeneratedKeys="true" keyProperty="chatAiNum">
+    INSERT INTO CHATAI (userNum, chatHistory) 
+    VALUES (#{userNum},#{chatHistoryJson})
+    </insert>
+
+    <select id="getChatHistoryByDate" resultType="map" parameterType="map">
+        SELECT 
+            chatHistory,
+            chatAiDate
+        FROM CHATAI
+        WHERE userNum = #{userNum} 
+        AND chatAiDate BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+    <select id="getChatDateInfo" resultType="java.sql.Timestamp" parameterType="Long">
+        SELECT 
+            chatAiDate
+        FROM CHATAI
+        WHERE userNum = #{userNum} 
+        ORDER BY chatAiDate DESC
+    </select>
+
+</mapper>

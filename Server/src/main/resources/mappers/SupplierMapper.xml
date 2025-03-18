@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jjangtrio.veteran.ServerApplication.dao.SupplierDAO">
+
+    <insert id="insertSupplier" parameterType="supplierdto"> INSERT INTO SUPPLIER
+        (supplierName,supplierCode,supplierEmployee,managerNum,supplierTransactionId,itemId,supplierProductWeight,supplierProductQuantity,supplierExpirationDate)
+        VALUES
+        (#{supplierName},#{supplierCode},#{supplierEmployee},#{managerNum},#{supplierTransactionId},#{itemId},#{supplierProductWeight},#{supplierProductQuantity},#{supplierExpirationDate})</insert>
+
+    <select id="selectSupplierTransactionId" parameterType="string" resultType="string"> SELECT
+        supplierTransactionId FROM SUPPLIER WHERE supplierTransactionId = #{supplierTransactionId} </select>
+
+</mapper>

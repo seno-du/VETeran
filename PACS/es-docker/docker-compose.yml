@@ -1,0 +1,45 @@
+# docker-compose.yml
+services:
+  es:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: es-single-node
+    environment:
+      - node.name=single
+      - cluster.name=standalone
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - xpack.security.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - data:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+      - 9300:9300
+    networks:
+      - es-bridge
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.17.4
+    container_name: kibana
+    ports:
+      - 5601:5601
+    environment:
+      ELASTICSEARCH_HOSTS: http://es:9200
+    depends_on:
+      - es
+    networks:
+      - es-bridge
+
+volumes:
+  data:
+    driver: local
+
+networks:
+  es-bridge:
+    driver: bridge

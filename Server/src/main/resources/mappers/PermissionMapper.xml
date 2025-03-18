@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jjangtrio.veteran.ServerApplication.dao.PermissionDAO">
+
+    <!-- 권한 조회 (유저 번호로 조회) -->
+    <select id="getPermissionByUserNum" parameterType="Long" resultType="permissiondto"> SELECT *
+        FROM PERMISSION WHERE managerNum = #{userNum} LIMIT 1 </select>
+
+    <!-- 권한 추가 -->
+    <insert id="insertPermission" parameterType="permissiondto"> INSERT INTO PERMISSION 
+    (managerNum, permissionRole, permissionState, permissionPasswordless) VALUES 
+    (#{managerNum}, #{permissionRole}, #{permissionState}, #{permissionPasswordless}) </insert>
+
+
+</mapper>

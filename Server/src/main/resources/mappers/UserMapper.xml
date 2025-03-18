@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jjangtrio.veteran.ServerApplication.dao.UserDAO">
+
+    <insert id="insertUser" parameterType="userdto"> INSERT INTO `USER` (userName, userId, userPwd,
+        userPhone, userBirth, userEmail, userAddress, userAddressNum) VALUES (#{userName},
+        #{userId}, #{userPwd}, #{userPhone}, #{userBirth}, #{userEmail}, #{userAddress},
+        #{userAddressNum}) </insert>
+
+    <!-- 전체 사용자 조회 -->
+    <select id="selectAllUser" resultType="userdto"> SELECT * FROM `USER` </select>
+
+    <!-- 사용자 번호 조회 -->
+    <select id="selectUserNum" parameterType="Long" resultType="userdto"> SELECT * FROM `USER` WHERE
+        userNum = #{userNum} </select>
+
+    <!-- 사용자 이름 조회 -->
+    <select id="selectUserName" parameterType="string" resultType="userdto"> SELECT * FROM USER
+        WHERE userName = #{userName} </select>
+
+    <!-- 사용자 아이디로 조회 -->
+    <select id="selectUserId" parameterType="string" resultType="userdto"> SELECT * FROM USER WHERE
+        userId = #{userId} </select>
+
+    <!-- 사용자 이메일로 조회 -->
+    <select id="selectUserEmail" parameterType="string" resultType="userdto"> SELECT * FROM USER
+        WHERE userEmail = #{userEmail} </select>
+
+    <!-- 사용자 번호로 조회 -->
+    <select id="selectUserPhone" parameterType="string" resultType="userdto"> SELECT * FROM USER
+        WHERE userPhone = #{userPhone} </select>
+
+    <!-- 이메일 중복 체크 -->
+    <select id="existsByUserEmail" parameterType="string" resultType="int"> SELECT COUNT(*) FROM
+        USER WHERE userEmail = #{email} </select>
+
+    <!-- 전화번호 중복 체크 -->
+    <select id="existsByUserPhone" parameterType="string" resultType="int"> SELECT COUNT(*) FROM
+        USER WHERE userPhone = #{phone} </select>
+
+    <!-- 아이디 중복 체크 -->
+    <select id="existsByUserId" parameterType="string" resultType="long"> SELECT COUNT(*) FROM USER
+        WHERE userId = #{userId} </select>
+
+    <!-- 유저 페이징 처리 -->
+    <select id="pageUser" parameterType="map" resultType="userdto"> SELECT userNum, userName,
+        userId, userPwd, userPhone, userBirth, userEmail, userAddress, userAddressNum, userStatus,
+        userSignupDate FROM USER WHERE userNum IS NOT NULL ORDER BY userNum DESC LIMIT #{pageSize}
+        OFFSET #{offset} </select>
+
+    <!-- 마이페이지 -->
+    <!-- 유저 정보 수정 (김채린)-->
+    <update id="updateUserInfo" parameterType="map"> UPDATE USER SET userPhone= #{userPhone},
+        userAddress=#{userAddress}, userAddressNum= #{userAddressNum} where userNum = #{userNum}; </update>
+
+    <!-- 비밀번호 변경 (김채린)-->
+    <update id="changePwd" parameterType="map"> UPDATE USER SET userPwd = #{newPassword} where
+        userNum=#{userNum}; </update>
+
+    <!-- 유저 탈퇴 처리 (김채린)-->
+    <update id="unsubscription" parameterType="Long"> UPDATE USER SET userStatus = '비활성' where
+        userNum=#{userNum}; </update>
+
+</mapper>

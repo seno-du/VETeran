@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jjangtrio.veteran.ServerApplication.dao.PaymentrequestDAO">
+
+    <!-- 결제 등록 -->
+    <insert id="insert" parameterType="paymentrequestdto"> INSERT INTO PAYMENTREQUEST
+        (paymentId,orderId,paymentMethod,paymentStatus,amount,approvedAt,requestedAt,userNum,reserveNum)
+        VALUES
+        (#{paymentId},#{orderId},#{paymentMethod},#{paymentStatus},#{amount},null,NOW(),#{userNum},#{reserveNum})</insert>
+
+
+    <!-- 결제 상태 UPDATE -->
+    <update id="updateState"> UPDATE PAYMENTREQUEST SET paymentStatus = #{state}, paymentKey =
+        #{paymentKey}, approvedAt = NOW() WHERE userNum = #{userNum} AND reserveNum = #{reserveNum} </update>
+
+    <select id="selectPay" resultType="map" parameterType="int"> SELECT p.paymentMethod,
+        p.paymentStatus, p.amount, p.approvedAt, p.requestedAt, p.userNum, p.reserveNum,
+        p.paymentKey, r.reserveDate, r.reserveNotice, u.userName, m.managerName FROM PAYMENTREQUEST
+        p JOIN RESERVE r ON p.reserveNum = r.reserveNum JOIN USER u ON p.userNum = u.userNum JOIN
+        MANAGER m ON r.managerNum = m.managerNum ORDER BY p.requestedAt LIMIT #{pageSize} OFFSET
+        #{offset} </select>
+
+    <select id="countPay" resultType="int">SELECT COUNT(*) FROM PAYMENTREQUEST p JOIN RESERVE r ON
+        p.reserveNum = r.reserveNum JOIN USER u ON p.userNum = u.userNum JOIN MANAGER m ON
+        r.managerNum = m.managerNum</select>
+
+</mapper>

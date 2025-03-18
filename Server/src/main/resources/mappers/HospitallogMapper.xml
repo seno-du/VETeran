@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jjangtrio.veteran.ServerApplication.dao.HospitallogDAO">
+
+  <!--입력한 입원 방의 마지막 입원 환자만 조회 -->
+  <select id="selectHospitalByRoomNum" parameterType="Long" resultType="map"> 
+      SELECT 
+        hospitallog.hospitalNum hospitalNum, 
+        pet.petName patName, 
+        pet.petSpecies petspecies, 
+        pet.petBreed petBreed,
+        manager.managerName managerName, 
+        hospitallog.hospitalRoom hospitalRoom,
+        DATE_FORMAT(hospitallog.hospitalStartTime, '%Y-%m-%d %H:%i') AS hospitalStartTime, 
+        hospitallog.hospitalMemo hospitalMemo,
+        hospitallog.hospitalStatus hospitalStatus 
+        FROM HOSPITALLOG hospitallog, CHART chart, RESERVE
+        reserve, PET pet, `USER` user, MANAGER manager 
+        WHERE hospitallog.hospitalRoom = #{hospitalRoom}
+        and chart.chartNum = hospitallog.chartNum 
+        and reserve.reserveNum = chart.reserveNum 
+        and pet.petNum = reserve.petNum 
+        and user.userNum = pet.userNum 
+        and manager.managerNum = reserve.managerNum 
+        ORDER BY hospitallog.hospitalNum DESC
+      LIMIT 1
+    </select>
+
+<!-- 입원 기록의 날짜 리스트 -->
+    <select id="getHospitalLogDateList" resultType="java.sql.Timestamp">
+        SELECT 
+        hospitalStartTime
+        FROM HOSPITALLOG
+        WHERE hospitalStatus = '활성'
+        ORDER BY hospitalStartTime DESC
+    </select>
+
+  <!-- 현재 입원 중인 전체 환자 리스트 조회 -->
+  <select id="getHospitalActiveList" resultType="map"> 
+    SELECT 
+      pet.petName petName, 
+      pet.petNum petNum,
+      pet.petSpecies petSpecies, 
+      pet.petBreed petBreed, 
+      manager.managerName managerName, 
+      user.userName userName, 
+      hospitallog.hospitalNum, 
+      hospitallog.hospitalRoom hospitalRoom,
+      DATE_FORMAT(hospitallog.hospitalStartTime, '%Y-%m-%d %H:%i') AS hospitalStartTime,
+      hospitallog.hospitalMemo hospitalMemo, 
+      hospitallog.hospitalStatus hospitalStatus 
+      FROM HOSPITALLOG hospitallog, CHART chart, RESERVE reserve, PET pet, `USER` user, MANAGER manager
+      WHERE hospitallog.chartNum = chart.chartNum and chart.reserveNum = reserve.reserveNum and
+      reserve.petNum = pet.petNum and pet.userNum = user.userNum and manager.managerNum = reserve.managerNum and
+      hospitallog.hospitalStatus = '활성' 
+      ORDER BY hospitallog.hospitalStartTime ASC 
+    </select>
+
+  <!-- 선택 날짜 입원 환자 조회 -->
+  <select id="getHospitalActiveListOfDay" parameterType="String" resultType="map"> 
+    SELECT pet.petName petName, 
+        pet.petNum petNum,
+        pet.petSpecies petSpecies, 
+        pet.petBreed petBreed, 
+        manager.managerName managerName, 
+        user.userName userName, 
+        hospitallog.hospitalNum, 
+        hospitallog.hospitalRoom hospitalRoom,
+        DATE_FORMAT(hospitallog.hospitalStartTime, '%Y-%m-%d %H:%i') AS hospitalStartTime,
+        hospitallog.hospitalMemo hospitalMemo, 
+        hospitallog.hospitalStatus hospitalStatus 
+        FROM HOSPITALLOG hospitallog, CHART chart, RESERVE reserve, PET pet, `USER` user, MANAGER manager
+        WHERE hospitallog.chartNum = chart.chartNum and chart.reserveNum = reserve.reserveNum and
+        reserve.petNum = pet.petNum and pet.userNum = user.userNum and manager.managerNum = reserve.managerNum and
+        hospitallog.hospitalStatus = '활성' 
+        and DATE_FORMAT(hospitallog.hospitalStartTime, '%Y-%m-%d') = #{selectday}
+        ORDER BY hospitallog.hospitalStartTime ASC
+    </select>
+
+  <!-- 입원 환자 전체 조회 -->
+  <select id="selectAllHospital" resultType="map"> SELECT hospitalNum, chartNum, hospitalRoom,
+    hospitalStartTime, hospitalMemo, hospitalStatus FROM HOSPITALLOG 
+    </select>
+
+  <!-- 입원 환자 추가 -->
+  <insert id="saveHospital" parameterType="hospitallogdto" useGeneratedKeys="true"
+    keyProperty="hospitalNum"> INSERT INTO HOSPITALLOG (chartNum, hospitalRoom, hospitalStartTime,
+    hospitalMemo,hospitalStatus) VALUES (#{chartNum}, #{hospitalRoom}, #{hospitalStartTime},
+    #{hospitalMemo}, '활성') 
+    </insert>
+
+
+  <!-- userNum로 입원 스케줄 리스트 최신순으로 조회 (김채린) -->
+  <!-- List<Map<String, Object>> findChartByUserNum(@Param("userNum")Long userNum, 
+    @Param("start") long start, @Param("size") long size); -->
+  <select id="findHospitalLogByUserNum" resultType="map"> select u.userNum, p.petNum, r.reserveNum,
+    m.managerNum, c.chartNum, h.hospitalNum, p.petName, CASE WHEN SUBSTR(managerId, 1, 1) = '4' THEN
+    '치과' WHEN SUBSTR(managerId, 1, 1) = '5' THEN '내과' WHEN SUBSTR(managerId, 1, 1) = '6' THEN '외과'
+    WHEN SUBSTR(managerId, 1, 1) = '7' THEN '마취과' WHEN SUBSTR(managerId, 1, 1) = '8' THEN '영상의학과'
+    ELSE '의사' END AS department, m.managerName, h.hospitalStartTime, h.hospitalMemo,
+    h.hospitalStatus from HOSPITALLOG h INNER JOIN CHART c ON c.chartNum = h.chartNum INNER JOIN
+    RESERVE r ON c.reserveNum = r.reserveNum INNER JOIN MANAGER m ON m.managerNum = r.managerNum
+    INNER JOIN PET p ON p.petNum = r.petNum INNER JOIN `USER` u ON p.userNum = u.userNum where
+    u.userNum = #{userNum} and p.petStatus = '활성' ORDER BY hospitalStartTime DESC LIMIT #{size}
+    OFFSET #{start} </select>
+
+  <!-- userNum으로 입원 내역 카운트 (김채린) -->
+  <select id="countHospitallLogByUserNum" resultType="Long" parameterType="Long"> SELECT COUNT(*)
+    from HOSPITALLOG h INNER JOIN CHART c ON c.chartNum = h.chartNum INNER JOIN RESERVE r ON
+    c.reserveNum = r.reserveNum INNER JOIN PET p ON p.petNum = r.petNum INNER JOIN `USER` u ON
+    p.userNum = u.userNum where u.userNum = #{userNum} and p.petStatus = '활성' </select>
+
+<!-- 퇴원시키기 -->
+  <update id="hospitalStatus" parameterType="Long"> 
+  UPDATE 
+  HOSPITALLOG SET hospitalStatus = '퇴원'
+  WHERE hospitalRoom = #{hospitalRoom}
+  </update>
+
+  <!-- 중복 입원 막기 -->
+  <select id="checkHospital" parameterType="Long" resultType="Long"> SELECT COUNT(*) FROM
+    HOSPITALLOG WHERE chartNum = #{chartNum} AND hospitalStatus = '활성' 
+    </select>
+
+</mapper>

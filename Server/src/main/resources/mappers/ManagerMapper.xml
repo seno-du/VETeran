@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jjangtrio.veteran.ServerApplication.dao.ManagerDAO">
+
+    <select id="findAllManager" parameterType="managerdto"> SELECT * FROM MANAGER </select>
+
+    <!-- 전체 관리자 조회 -->
+    <select id="findAllWithPermissions" resultType="map"> SELECT m.*, p.* FROM MANAGER m INNER JOIN
+        PERMISSION p ON m.managerNum = p.managerNum ORDER BY m.managerNum DESC LIMIT #{size} OFFSET
+        #{start} </select>
+
+    <select id="findBymanagerNum" resultType="string"> SELECT managerName FROM MANAGER WHERE
+        managerNum = #{managerNum} </select>
+
+    <select id="totalCount" resultType="long"> SELECT COUNT(*) FROM MANAGER </select>
+
+    <select id="findById" resultType="map"> SELECT m.*, p.* FROM MANAGER m INNER JOIN PERMISSION p
+        ON m.managerNum = p.managerNum WHERE m.managerNum = #{managerNum} </select>
+
+    <!-- Manager 추가 -->
+    <insert id="insertManager" parameterType="managerdto" useGeneratedKeys="true"
+        keyProperty="managerNum"> INSERT INTO MANAGER (managerName, managerLicenseNum, managerId,
+        managerPwd, managerPhone, managerEmail, managerBirth, managerGender, managerAddress,
+        managerImage) VALUES (#{managerName}, #{managerLicenseNum}, #{managerId}, #{managerPwd},
+        #{managerPhone}, #{managerEmail}, #{managerBirth}, #{managerGender}, #{managerAddress},
+        #{managerImage}) </insert>
+
+    <!-- 관리자 정보 수정 -->
+    <update id="updateManager" parameterType="map"> UPDATE PERMISSION p JOIN MANAGER m ON
+        p.managerNum = m.managerNum SET p.permissionState = #{permissionState}, m.managerAddress =
+        #{managerAddress}, m.managerPhone = #{managerPhone} WHERE m.managerNum = #{managerNum} </update>
+
+    <!-- 특정 관리자 조회 -->
+    <select id="selectManagerId" parameterType="string" resultType="managerdto"> SELECT * FROM
+        MANAGER WHERE managerId = #{managerId} </select>
+
+    <!-- 메니저 Id 별 부서 찾기 -->
+    <select id="selectManagerIdWhereRHK" parameterType="string" resultType="map"> SELECT managerNum,
+        managerName FROM MANAGER WHERE SUBSTR(managerId,1,1) = #{roc} </select>
+
+    <select id="selectPermissonRole" resultType="map"> SELECT m.*, p.* FROM MANAGER m INNER JOIN
+        PERMISSION p ON m.managerNum = p.managerNum WHERE trim(p.permissionRole)=#{permissionRole}
+        ORDER BY m.managerNum DESC LIMIT #{size} OFFSET #{start} </select>
+
+    <!-- 의사 이름 불러오기 -->
+    <select id="findManagersBySubstring" resultType="map"> SELECT managerName, managerNum FROM MANAGER WHERE
+        SUBSTR(managerId,1,1) = '4' or SUBSTR(managerId,1,1) = '5' or SUBSTR(managerId,1,1) = '6'</select>
+
+    <!-- 메니저 ID 카운트 -->
+    <select id="selectManagerIdCount" resultType="Long"> select count(managerNum) from MANAGER WHERE
+        SUBSTR(managerId,1,#{count})=#{number} </select>
+
+    <select id="selectXCount" resultType="Long">select count(managerNum) from MANAGER</select>
+
+</mapper>

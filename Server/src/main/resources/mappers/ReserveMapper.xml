@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jjangtrio.veteran.ServerApplication.dao.ReserveDAO">
+
+    <select id="findAllReserve" resultType="map"> SELECT m.*, p.* FROM RESERVE m INNER JOIN MANAGER
+        p ON m.managerNum = p.managerNum ORDER BY m.managerNum DESC LIMIT #{size} OFFSET #{start} </select>
+
+    <select id="totalCount" resultType="long"> SELECT count(*) FROM RESERVE </select>
+
+    <insert id="insertReserve" parameterType="reservedto" useGeneratedKeys="true" keyProperty="petNum">
+        INSERT INTO RESERVE (
+	        petNum,managerNum,reserveStatus,reserveDate,reserveNotice) 
+        values (#{petNum},#{managerNum},'대기',#{reserveDate},#{reserveNotice});
+    </insert>
+
+    <!-- reserveNum으로 예약 조회 (김채린) -->
+    <select id="findDetailByreserveNum" resultType="reservedto"> select * from RESERVE where
+        reserveNum = #{reserveNum} </select>
+
+    <!-- userNum로 예약 내역 최신순 조회 (김채린) -->
+    <!-- List<Map<String, Object>> findReserveByUserNum(@Param("userNum") Long userNum, 
+    @Param("start") long start, @Param("size") long size); -->
+    <select id="findReserveByUserNum" resultType="map">
+      SELECT u.userNum, p.petNum, m.managerNum, r.reserveNum, p.petName, r.reserveDate,
+       CASE 
+           WHEN SUBSTR(m.managerId, 1, 1) = '4' THEN '안과'
+           WHEN SUBSTR(m.managerId, 1, 1) = '5' THEN '내과'
+           WHEN SUBSTR(m.managerId, 1, 1) = '6' THEN '외과'
+           ELSE '의사'
+       END AS department,
+       m.managerName, r.reserveNotice, r.reserveStatus, pay.paymentId
+        FROM RESERVE r
+        INNER JOIN MANAGER m ON m.managerNum = r.managerNum
+        LEFT JOIN PAYMENTREQUEST pay ON r.reserveNum = pay.reserveNum
+        INNER JOIN PET p ON p.petNum = r.petNum
+        INNER JOIN USER u ON p.userNum = u.userNum
+        WHERE u.userNum = #{userNum} AND p.petStatus = '활성'
+        ORDER BY reserveNum DESC
+        LIMIT #{size} OFFSET #{start};
+
+    </select>
+
+    <!-- reserveNum 으로 예약 취소하기 (김채린) -->
+    <update id="unReservation" parameterType="Long"> update RESERVE set reserveStatus = '취소' where
+        reserveNum = #{reserveNum} </update>
+
+    <!-- userNum으로 예약 내역 카운트 (김채린) -->
+    <select id="countReserveByUserNum" resultType="Long" parameterType="Long"> SELECT COUNT(*) FROM
+        RESERVE r INNER JOIN PET p ON p.petNum = r.petNum INNER JOIN USER u ON p.userNum = u.userNum
+        where u.userNum = #{userNum} and p.petStatus = '활성' </select>
+
+    <!-- 예약 조회 매핑(김진헌) -->
+    <resultMap id="ReserveWithPetMap" type="com.jjangtrio.veteran.ServerApplication.dto.ReserveDTO">
+        <id property="reserveNum" column="reserveNum" />
+        <result property="reserveDate" column="reserveDate" />
+        <result property="reserveTime" column="reserveTime" />
+        <result property="reserveNotice" column="reserveNotice" />
+        <result property="reserveStatus" column="reserveStatus" />
+        <result property="managerName" column="managerName" />
+        <result column="managerNum" property="managerNum" jdbcType="INTEGER" />
+        <result property="petNum" column="petNum" />
+        <association property="pet" javaType="com.jjangtrio.veteran.ServerApplication.dto.PetDTO">
+            <result property="petName" column="petName" />
+            <result property="petSpecies" column="petSpecies" />
+            <result property="petBreed" column="petBreed" />
+            <result property="petGender" column="petGender" />
+        </association>
+    </resultMap>
+
+    <!-- 예약 조회 (김진헌) -->
+<select id="pageReserveByDate" parameterType="map" resultMap="ReserveWithPetMap">
+    SELECT 
+        r.reserveNum, 
+        r.reserveDate, 
+        SUBSTRING(r.reserveDate, 12, 5) AS reserveTime,
+        r.reserveNotice, 
+        r.managerNum,
+        r.petNum, 
+        p.petName, 
+        p.petSpecies, 
+        p.petBreed, 
+        p.petGender
+    FROM RESERVE r
+    JOIN PET p ON r.petNum = p.petNum
+    WHERE DATE(r.reserveDate) = #{reserveDate}
+    AND r.reserveStatus = '완료'
+    ORDER BY r.reserveDate DESC 
+    LIMIT #{pageSize} OFFSET #{offset};
+</select>
+
+ <!-- 예약 상태 대기 조회 (김진헌) -->
+<select id="findPendingReserve" parameterType="map" resultMap="ReserveWithPetMap">
+    SELECT 
+        r.reserveNum, 
+        r.reserveDate, 
+        SUBSTRING(r.reserveDate, 12, 5) AS reserveTime,
+        r.reserveNotice, 
+        r.managerNum,
+        r.petNum, 
+        r.reserveStatus,
+        p.petName, 
+        p.petSpecies, 
+        p.petBreed, 
+        p.petGender,
+        m.managerName
+    FROM RESERVE r
+    JOIN PET p ON r.petNum = p.petNum
+    JOIN MANAGER m ON r.managerNum = m.managerNum
+    WHERE r.reserveStatus = '대기'
+    ORDER BY r.reserveDate DESC
+    LIMIT #{pageSize} OFFSET #{offset};
+</select>
+<select id="countPendingReserve" resultType="int">
+    SELECT COUNT(*) FROM RESERVE WHERE reserveStatus = '대기';
+</select>
+<update id="updateReserveStatusToComplete" parameterType="map">
+    UPDATE RESERVE
+    SET reserveStatus = #{reserveStatus}
+    WHERE reserveNum IN
+    <foreach item="num" collection="reserveNum" open="(" separator="," close=")">
+        #{num}
+    </foreach>;
+</update>
+
+<update id="updateStateWhereReserveNum" parameterType="map">
+    UPDATE RESERVE
+    SET reserveStatus = #{reserveStatus}
+    WHERE reserveNum = #{reserveNum}
+</update>
+
+
+<!-- 금일 예약 갯수 갖고오기-->
+<select id="countReserveByDate" resultType="long">
+    SELECT COUNT(*)
+    FROM RESERVE
+    WHERE DATE(reserveDate) = #{targetDate} AND reserveStatus ="완료"
+</select>
+<!-- 이번 주 예약 갯수 갖고오기-->
+<select id="countReserveByWeek" resultType="long">
+    SELECT COUNT(*)
+    FROM RESERVE
+    WHERE YEARWEEK(reserveDate, 1) = YEARWEEK(#{targetDate}, 1) AND reserveStatus ="완료"
+</select>
+<!-- 이번 달 예약 갯수 갖고오기-->
+<select id="countReserveByMonth" resultType="long">
+    SELECT COUNT(*)
+    FROM RESERVE
+    WHERE DATE_FORMAT(reserveDate, '%Y-%m') = #{targetMonth} AND reserveStatus ="완료"
+</select>
+
+    <!-- pet정보로 예약 가져오기-->
+    <select id="findReserveByPetNum"
+        resultType="com.jjangtrio.veteran.ServerApplication.dto.ReserveDTO"> SELECT * FROM RESERVE
+        WHERE petNum = #{petNum} ORDER BY reserveDate ASC </select>
+
+    <select id="limitReserveNum" resultType="Long">select reserveNum from RESERVE ORDER BY
+        reserveNum DESC LIMIT 1</select>
+</mapper>

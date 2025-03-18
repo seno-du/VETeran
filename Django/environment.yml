@@ -1,0 +1,11 @@
+name: myenv
+channels:
+  - defaults
+dependencies:
+  - python=3.10.10
+  - numpy
+  - pandas
+  - scikit-learn
+  - django
+  - pymysql
+  - dotenv

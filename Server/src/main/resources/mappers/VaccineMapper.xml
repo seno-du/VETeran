@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jjangtrio.veteran.ServerApplication.dao.VaccineDAO">
+
+    <select id="findAllVaccine" resultType="map">
+        SELECT m.*, v.*, p.*
+            FROM VACCINE v
+            INNER JOIN MANAGER m ON m.managerNum = v.managerNum
+            INNER JOIN PET p ON p.petNum = v.petNum
+            ORDER BY v.vaccineNum DESC
+        LIMIT #{size} OFFSET #{start}
+    </select>
+
+    <select id="totalCount" resultType="long">
+        SELECT COUNT(*) FROM VACCINE
+    </select>
+
+    <select id="selectVaccine" resultType="map">
+        SELECT m.*, v.*, p.*, i.*
+            FROM VACCINE v
+            INNER JOIN MANAGER m ON m.managerNum = v.managerNum
+            INNER JOIN PET p ON p.petNum = v.petNum
+            INNER JOIN ITEM i ON i.itemId = v.itemId
+        WHERE v.vaccineNum = #{vaccineNum}
+    </select>
+
+    <update id="updateVaccine" parameterType="map">
+        UPDATE VACCINE
+        SET managerNum = #{managerNum},
+            petNum = #{petNum},
+            itemId = #{itemId}
+        WHERE vaccineNum = #{vaccineNum}
+    </update>
+
+
+    <insert id="insertVaccine" parameterType="map">
+        insert into VACCINE(managerNum,petNum,itemId,vaccineDate) values (#{managerNum},#{petNum},#{itemId},NOW());
+    </insert>
+</mapper>

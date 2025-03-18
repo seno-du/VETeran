@@ -1,0 +1,84 @@
+{
+  "settings": {
+    "analysis": {
+      "analyzer": {
+        "nori_analyzer": {
+          "type": "custom",
+          "tokenizer": "nori_tokenizer",
+          "filter": [
+            "nori_part_of_speech",
+            "nori_readingform",
+            "lowercase",
+            "stop",
+            "trim"
+          ],
+          "char_filter": [
+            "html_strip"
+          ]
+        }
+      },
+      "tokenizer": {
+        "nori_tokenizer": {
+          "type": "nori_tokenizer",
+          "decompound_mode": "mixed",
+          "user_dictionary_rules": ["기침", "호흡", "귀"]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "@timestamp": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      },
+      "증상코드": {
+        "type": "keyword",
+        "eager_global_ordinals": true
+      },
+      "증상분류_한글": {
+        "type": "text",
+        "analyzer": "nori_analyzer",
+        "search_analyzer": "nori_analyzer",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          },
+          "english": {
+            "type": "text",
+            "analyzer": "english"
+          }
+        }
+      },
+      "증상분류_영어": {
+        "type": "text",
+        "analyzer": "english",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "증상목록코드": {
+        "type": "keyword"
+      },
+      "증상명": {
+        "type": "text",
+        "analyzer": "nori_analyzer",
+        "search_analyzer": "nori_analyzer",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          },
+          "ngram": {
+            "type": "text",
+            "analyzer": "standard"
+          }
+        }
+      }
+    }
+  }
+}

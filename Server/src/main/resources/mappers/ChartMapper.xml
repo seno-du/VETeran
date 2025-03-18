@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jjangtrio.veteran.ServerApplication.dao.ChartDAO">
+
+<!-- 최신 차트 조회 -->
+    <select id="selectLatestChart" parameterType="Long" resultType="Long"> 
+        SELECT chart.chartNum
+            chartNum FROM CHART chart, RESERVE reserve 
+        WHERE
+        reserve.petNum = #{petNum} 
+        AND reserve.reserveNum = chart.reserveNum 
+        ORDER BY chart.chartDate DESC 
+        LIMIT 1 
+    </select>
+
+<!--단일차트 조회-->
+    <select id="selectChart" parameterType="Long" resultType="map"> 
+        SELECT 
+            pet.petNum petNum,
+            user.userName userName,
+            pet.petSpecies petSpecies, 
+            pet.petColor petColor, 
+            pet.petName petName, 
+            pet.petBreed petBreed, 
+            pet.petGender petGender, 
+            pet.petBirth petBirth,
+            pet.petMicrochip petMicrochip, 
+            pet.petWeight petWeight, 
+            pet.petStatus petStatus,
+            pet.petImage petImage, 
+            chart.chartNote subjective, 
+            chart.chartCode assessment,
+            COALESCE((
+            SELECT hospitallog.hospitalNum 
+            FROM HOSPITALLOG hospitallog 
+            WHERE hospitallog.chartNum = chart.chartNum 
+            LIMIT 1
+              ), 0) AS hospitalNum
+        FROM CHART chart, RESERVE reserve, PET pet, USER user 
+        WHERE chart.chartNum = #{chartNum} 
+            AND reserve.reserveNum = chart.reserveNum 
+            AND reserve.petNum = pet.petNum 
+            AND pet.userNum = user.userNum
+    </select>
+
+
+
+ <!-- managerNum 기반으로 차트 로그 목록 조회 -->
+    <select id="selectChartHistory" parameterType="Long" resultType="map"> 
+    SELECT 
+        chart.chartNum chartNum, 
+        chart.chartDate chartDate 
+    FROM 
+    RESERVE reserve, 
+    PET pet, 
+    CHART chart 
+    WHERE 
+        pet.petNum = (SELECT pet.petNum FROM CHART chart, PET pet, RESERVE reserve WHERE chartNum = #{chartNum} AND reserve.petNum = pet.petNum AND chart.reserveNum = reserve.reserveNum) AND
+        reserve.petNum = pet.petNum AND
+        chart.reserveNum = reserve.reserveNum 
+    </select>
+
+    <!-- 단일 진료내역 디테일 -->
+    <select id="historyDetail" parameterType="long" resultType="map"> 
+    SELECT 
+        chart.chartNum chartNum, 
+        manager.managerName managerName, 
+        chart.chartNote chartNote, 
+        chart.chartDate chartDate 
+    FROM CHART chart 
+        JOIN RESERVE reserve ON reserve.reserveNum = chart.reserveNum
+        JOIN PET pet ON reserve.petNum = pet.petNum 
+        JOIN MANAGER manager ON reserve.managerNum = manager.managerNum 
+    WHERE chart.chartNum = #{chartNum} 
+    </select>
+
+
+    <!-- 당일 차트 수정 -->
+    <update id="updateChart" parameterType="map"> 
+    UPDATE 
+    CHART c 
+        JOIN RESERVE r ON c.reserveNum =r.reserveNum 
+        JOIN PET p ON r.petNum = p.petNum 
+        JOIN USER u ON p.userNum = u.userNum 
+    SET
+        c.chartNote = #{subjective}, 
+        c.chartCode = #{assessment}, 
+        c.chartDate = NOW(),
+        p.petSpecies = #{petSpecies},
+        p.petColor = #{petColor}, 
+        p.petName = #{petName}, 
+        p.petBreed = #{petBreed}, 
+        p.petGender =#{petGender}, 
+        p.petMicrochip = #{petMicrochip}, 
+        p.petWeight = #{petWeight}, 
+        p.petStatus = #{petStatus}, 
+        p.petImage = #{petImage}, 
+        u.userName = #{userName} 
+    WHERE c.chartNum = #{chartNum} 
+    </update>
+
+<!--전체차트 조회-->
+    <select id="selectAllChart" resultType="chartdto"> 
+    SELECT chartNum, 
+        reserveNum, chartNote, chartVital, chartDate, chartFile, chartCode 
+    FROM CHART 
+    </select>
+
+<!-- 해당 chartNum 안에 진료내역 조회 -->
+    <select id="getChartDates" parameterType="map" resultType="map"> 
+    SELECT DATE_FORMAT(chart.chartDate, '%Y-%m-%d') AS chartDate
+    FROM CHART chart
+    WHERE chart.chartNum = #{chartNum}
+    GROUP BY chartDate
+    ORDER BY chartDate DESC;
+    </select>
+
+<!-- 당일 차트 저장-->
+    <insert id="saveChart" parameterType="chartdto" useGeneratedKeys="true" keyProperty="chartNum">
+    INSERT INTO CHART
+        (reserveNum,chartNote,chartVital,chartDate,chartFile,chartCode) 
+    VALUES
+        (#{reserveNum},#{chartNote},#{chartVital},#{chartDate},#{chartFile},#{chartCode})
+    </insert>
+
+<!-- userNum로 차트 리스트 조회 (김채린) -->
+    <select id="findChartByUserNum" resultType="map"> 
+        select u.userNum,
+            p.petNum, r.reserveNum, m.managerNum, c.chartNum, p.petName, c.chartDate, 
+            CASE 
+                WHEN SUBSTR(managerId, 1, 1) = '4' THEN '치과' 
+                WHEN SUBSTR(managerId, 1, 1) = '5' THEN '내과' 
+                WHEN SUBSTR(managerId, 1, 1) = '6' THEN '외과' 
+                WHEN SUBSTR(managerId, 1, 1) = '7' THEN '마취과' 
+                WHEN SUBSTR(managerId, 1, 1) = '8' THEN '영상의학과'
+                ELSE '의사' 
+            END AS department, m.managerName, c.chartNote 
+        FROM CHART c 
+        INNER JOIN RESERVE r ON c.reserveNum = r.reserveNum 
+        INNER JOIN MANAGER m ON m.managerNum = r.managerNum 
+        INNER JOIN PET p ON p.petNum = r.petNum 
+        INNER JOIN USER u ON p.userNum = u.userNum 
+        where u.userNum = #{userNum} and p.petStatus = '활성'
+        ORDER BY chartDate DESC
+        LIMIT #{size} OFFSET #{start}
+    </select>
+
+    <!-- userNum으로 진료 기록 카운트 (김채린) -->
+    <select id="countChartByUserNum" resultType="Long"  parameterType="Long">
+        SELECT COUNT(*)
+        FROM CHART c 
+        INNER JOIN RESERVE r ON c.reserveNum = r.reserveNum 
+        INNER JOIN MANAGER m ON m.managerNum = r.managerNum 
+        INNER JOIN PET p ON p.petNum = r.petNum 
+        INNER JOIN USER u ON p.userNum = u.userNum 
+        where u.userNum = #{userNum} and p.petStatus = '활성'
+    </select>
+
+<select id='getChartHistory'> select * from CHART</select>
+
+
+</mapper>

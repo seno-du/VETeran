@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jjangtrio.veteran.ServerApplication.dao.ChatRoomDAO">
+
+    <!-- 전체 채팅방 조회 -->
+    <select id="findAllChatRooms" resultType="chatroomdto">
+        SELECT c.chatroomNum, c.chatroomName, 
+	  	    c.chatroomGroup, c.chatroomCreateAt,
+	  	    m.managerNum AS memberManagerNum, m.joinDate
+        FROM CHATROOM c, CHATROOMMEMBER m where c.chatroomNum = m.chatroomNum AND m.managerNum = #{managerNum}
+    </select>
+
+    <!-- 채팅방 조회 -->
+    <select id="findChatRoomById" parameterType="Long" resultType="chatroomdto">
+        SELECT chatroomNum, managerNum, chatroomName, chatroomGroup, chatroomCreateAt FROM CHATROOM WHERE chatroomNum = #{chatroomNum} AND AND managerNum = #{managerNum};
+    </select>
+
+    <!-- 채팅방 생성 -->
+    <insert id="createChatRoom" parameterType="map">
+        INSERT INTO CHATROOM (managerNum, chatroomName, chatroomGroup, chatroomCreateAt)
+        VALUES (#{managerNum}, #{chatroomName}, #{chatroomGroup}, NOW())
+    </insert>
+
+    <!-- 생성된 chatroomNum 가져오기 -->
+    <select id="getLastInsertedId" resultType="long">
+        SELECT LAST_INSERT_ID()
+    </select>
+
+    <!-- 채팅방에 참여자 추가 -->
+    <insert id="addMemberToChatRoom" parameterType="map">
+        INSERT INTO CHATROOMMEMBER (chatroomNum, managerNum, joinDate)
+        VALUES (#{chatroomNum}, #{managerNum}, NOW())
+    </insert>
+
+    <select id="findMembersByChatRoom" parameterType="long" resultType="chatroommember">
+        SELECT chatroomNum, managerNum, joinDate
+        FROM CHATROOMMEMBER
+        WHERE chatroomNum = #{chatroomNum}
+    </select>
+
+</mapper>

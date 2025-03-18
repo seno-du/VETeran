@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jjangtrio.veteran.ServerApplication.dao.PetDAO">
+	<!-- 특정 펫 조회 (petNum 기준, 보호자 이름 포함) -->
+	<select id="selectPetByPetNum" parameterType="Long" resultType="map">
+		SELECT
+		p.petNum,
+		p.userNum,
+		p.petSpecies,
+		p.petColor,
+		p.petName,
+		p.petBreed,
+		p.petGender,
+		p.petBirth,
+		p.petMicrochip,
+		p.petWeight,
+		p.petStatus,
+		p.petImage,
+		u.userName AS userName
+		FROM PET p
+		JOIN USER u ON p.userNum = u.userNum
+		WHERE p.petNum = #{petNum}
+	</select>
+	<!-- 펫 전체 조회 (보호자 이름 포함, PatientFind) -->
+	<select id="selectAllPets" parameterType="map" resultType="map">
+		SELECT
+		p.petNum,
+		p.userNum,
+		p.petSpecies,
+		p.petColor,
+		p.petName,
+		p.petBreed,
+		p.petGender,
+		p.petBirth,
+		p.petMicrochip,
+		p.petWeight,
+		p.petStatus,
+		p.petImage,
+		u.userName AS userName,
+		CASE
+		WHEN EXISTS (
+		SELECT 1
+		FROM CHART chart, RESERVE reserve
+		WHERE reserve.petNum = p.petNum
+		AND reserve.reserveNum = chart.reserveNum
+		AND chart.chartDate = (
+		SELECT MAX(chartDate)
+		FROM CHART
+		WHERE reserveNum = chart.reserveNum
+		)
+		) THEN TRUE
+		ELSE FALSE
+		END AS hasLatestChart
+		FROM PET p
+		JOIN USER u ON p.userNum = u.userNum
+		ORDER BY p.petNum DESC
+		LIMIT #{size} OFFSET #{offset}
+	</select>
+
+	<select id="countPet" resultType="long">
+		SELECT
+		COUNT(*)
+		FROM PET
+	</select>
+    
+	<!-- HospitalAdd 전용 펫 전체 조회 (chartNum 포함) -->
+	<select id="selectAllPetsForHospital" resultType="map">
+		SELECT
+		p.petNum,
+		u.userNum,
+		u.userName,
+		p.petSpecies,
+		p.petName,
+		p.petBreed,
+		p.petGender,
+		p.petBirth,
+		p.petWeight,
+		p.petColor,
+		c.chartNum as chartNum
+		FROM PET p
+		INNER JOIN RESERVE r ON p.petNum = r.petNum
+		INNER JOIN CHART c ON r.reserveNum = c.reserveNum
+		INNER JOIN USER u ON p.userNum = u.userNum
+
+	</select>
+	<!-- 마이페이지 -->
+	<!-- 펫 추가 (김채린) -->
+	<insert id="insertMyPet" parameterType="petdto" useGeneratedKeys="true" keyProperty="petNum">
+		insert into PET(userNum,petSpecies,petColor,petName,petBreed,petGender,petBirth,petMicrochip,petWeight,petImage)
+		values(#{userNum},#{petSpecies},#{petColor},#{petName},#{petBreed},#{petGender},#{petBirth},#{petMicrochip},
+		#{petWeight},#{petImage})
+	</insert>
+	<!-- 펫 정보 수정 (김채린) -->
+	<update id="updateMyPet" parameterType="petdto">
+		UPDATE PET
+		SET
+		petGender = #{petGender},
+		petWeight = #{petWeight},
+		petImage = #{petImage}
+		WHERE petNum = #{petNum} and petStatus = '활성'
+	</update>
+	<!-- 펫 무지개다리 (김채린) -->
+	<update id="editPetStatus" parameterType="Long">
+		UPDATE PET
+		SET
+		petStatus = '비활성'
+		WHERE petNum = #{petNum}
+	</update>
+	<!-- userNum으로 펫 조회 (김채린) -->
+	<!--
+	List<Map<String, Object>> findPetByUserNum(@Param("userNum") Long userNum,
+	@Param("start") long start, @Param("size") long size);
+	-->
+	<select id="findPetByUserNum" resultType="map">
+		SELECT
+		u.userNum, p.petNum,p.petSpecies,p.petColor,p.petName,p.petGender,p.petBirth,p.petMicrochip,p.petWeight,p.petImage
+		FROM PET p
+		INNER JOIN USER u ON p.userNum = u.userNum
+		where u.userNum = #{userNum} and p.petStatus = '활성'
+		ORDER BY petNum DESC
+		LIMIT #{size} OFFSET #{start}
+	</select>
+	<!-- userNum으로 펫 카운트 (김채린) -->
+	<select id="countPetByUserNum" resultType="Long" parameterType="Long">
+		SELECT COUNT(*)
+		FROM PET p
+		INNER JOIN USER u ON p.userNum = u.userNum
+		WHERE u.userNum = #{userNum} and p.petStatus = '활성'
+	</select>
+</mapper>

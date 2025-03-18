@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jjangtrio.veteran.ServerApplication.dao.MfileDAO">
+    <!-- mfile 단일조회-->
+    <select id="selectMfile" parameterType="Long" resultType="mfiledto">
+            SELECT * FROM MFILE WHERE mfileNum = #{mfileNum}
+    </select>
+
+    <!-- mfile 전체 조회 -->
+    <select id="mfileList" resultType="mfiledto" parameterType="pagedto">
+        SELECT * FROM (
+            SELECT 
+                MFILENUM,
+                MFILEREALNAME,
+                MFILETITLE,
+                MFILECONTENT,
+                MFILECATEGORY,
+                MFILEDATE,
+                MFILEUPLOADER,  
+                MFILEDOWNLOADCOUNT,
+                MFILEMODIFIEDDATE,
+                MFILESTATUS,
+                ROW_NUMBER() OVER(ORDER BY MFILENUM DESC) AS row_num
+            FROM MFILE
+        ) numbered_rows 
+        WHERE numbered_rows.row_num BETWEEN #{startIndex} AND #{endIndex}
+    </select>
+
+    <select id="totalCount" resultType="long" parameterType="map"> 
+        SELECT COUNT(*) cnt FROM MFILE
+    </select>
+
+    <!-- mfile 추가 -->
+    <insert id="insertMfile" parameterType="mfiledto" useGeneratedKeys="true" keyProperty="mfileNum">
+        INSERT INTO MFILE (mfileTitle, mfileContent, mfileDate, mfileRealName, mfileName, mfileCategory, mfileStatus, mfileUploader, mfileModifiedDate)
+        VALUES (#{mfileTitle}, #{mfileContent}, NOW(), #{mfileRealName}, #{mfileName}, #{mfileCategory}, '활성', #{mfileUploader}, NOW())
+    </insert>
+    
+    <!-- mfile 다운로드 횟수 증가 -->
+    <update id="increaseDownloadCount" parameterType="Long">
+        UPDATE MFILE
+        SET mfileDownloadCount = mfileDownloadCount + 1
+        WHERE mfileNum = #{mfileNum}
+    </update>
+
+
+    <!-- mfile 수정 -->
+    <update id="updateMfile" parameterType="mfiledto">
+        UPDATE MFILE
+        SET
+            mfileTitle = #{mfileTitle},
+            mfileContent = #{mfileContent},
+            mfileRealName = #{mfileRealName},
+            mfileName = #{mfileName},
+            mfileCategory= #{mfileCategory},
+            mfileUploader = #{mfileUploader},
+            mfileModifiedDate = NOW()
+        WHERE mfileNum = #{mfileNum}
+    </update>
+
+    <!-- ✅ 파일 검색 (날짜, 카테고리, 담당자 기준) -->
+    <select id="searchMfiles" resultType="mfiledto">
+        SELECT * FROM MFILE
+        WHERE (#{mfileDate} IS NULL OR DATE(mfileDate) = DATE(#{mfileDate}))
+        AND (#{mfileCategory} IS NULL OR mfileCategory = #{mfileCategory})
+        AND (#{mfileUploader} IS NULL OR mfileUploader LIKE CONCAT('%', #{mfileUploader}, '%'))
+    </select>
+
+
+    <!-- mfile 활성화/비활성화-->
+    <update id="statusMfile" parameterType="MfileDTO">
+        UPDATE MFILE
+        SET
+            mfileStatus = '비활성'
+        WHERE mfileNum = #{mfileNum}
+    </update>
+
+</mapper>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.pwl.mapper.Login.LoginMapper">
+
+	<!-- Search for User Information -->
+	<select id="getUserInfo" parameterType="UserInfo" resultType="UserInfo">
+		SELECT managerNum, managerEmail, managerPwd, managerSignupDate
+		FROM MANAGER
+		WHERE managerEmail = '${managerEmail}'
+	</select>
+	
+	<!-- Password Update -->
+	<update id="updatePassword" parameterType="UserInfo">
+		UPDATE MANAGER
+		SET managerPwd='${managerPwd}'
+		WHERE managerEmail = '${managerEmail}'
+	</update>
+
+	<update id="updatePermission" parameterType="UserInfo">
+		UPDATE PERMISSION 
+		SET permissionPasswordless = '등록'
+		WHERE managerNum = #{managerNum}
+	</update>
+
+	<select id="selectPermission" parameterType="UserInfo" resultType="string">
+		SELECT 
+		permissionPasswordless
+		FROM PERMISSION
+		WHERE managerNum = #{managerNum}
+	</select>
+</mapper>

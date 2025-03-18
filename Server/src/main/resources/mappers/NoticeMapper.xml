@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jjangtrio.veteran.ServerApplication.dao.NoticeDAO">
+ <!-- notice 단일조회-->
+    <select id="selectNotice" parameterType="Long" resultType="noticedto">
+            SELECT * FROM NOTICE WHERE noticeNum = #{noticeNum}
+    </select>
+
+    <!-- notice 전체 조회 -->
+    <select id="noticeList" resultType="noticedto" parameterType="pagedto">
+        SELECT * FROM (
+            SELECT 
+                NOTICENUM, 
+                NOTICEDATE, 
+                NOTICETITLE, 
+                NOTICECONTENT, 
+                NOTICEIMAGE,
+                NOTICEHIT,
+                NOTICESTATUS,
+                ROW_NUMBER() OVER(ORDER BY NOTICENUM DESC) AS row_num
+            FROM NOTICE
+        ) numbered_rows 
+        WHERE numbered_rows.row_num BETWEEN #{startIndex} AND #{endIndex}
+    </select>
+
+    <select id="totalCount" resultType="long" parameterType="map"> SELECT COUNT(*) cnt FROM NOTICE </select>
+
+    <!-- notice 추가 -->
+    <insert id="insertNotice" parameterType="noticedto" useGeneratedKeys="true" keyProperty="noticeNum">
+        INSERT INTO NOTICE (noticeTitle, noticeContent, noticeDate, noticeImage, noticeHit, noticeStatus)
+        VALUES (#{noticeTitle}, #{noticeContent}, NOW(), #{noticeImage}, 0, '활성')
+    </insert>
+
+    <!-- notice 조회수 증가 -->
+    <update id="updateHit" parameterType="Long">
+        UPDATE NOTICE
+        SET noticeHit = noticeHit + 1
+        WHERE noticeNum = #{noticeNum}
+    </update>
+
+
+    <!-- notice 수정 -->
+    <update id="updateNotice" parameterType="noticedto">
+        UPDATE NOTICE
+        SET
+            noticeTitle = #{noticeTitle},
+            noticeContent = #{noticeContent},
+            noticeImage = #{noticeImage}
+        WHERE noticeNum = #{noticeNum}
+    </update>
+
+    <!-- 제목으로 검색 -->
+    <select id="searchNoticesByTitle" resultType="noticedto">
+        SELECT * FROM NOTICE
+        WHERE noticeTitle LIKE CONCAT('%', #{noticeTitle}, '%')
+    </select>
+
+    <!-- 내용으로 검색 -->
+    <select id="searchNoticesByContent" resultType="noticedto">
+        SELECT * FROM NOTICE
+        WHERE noticeContent LIKE CONCAT('%', #{noticeContent}, '%')
+    </select>
+
+    <!-- 날짜로 검색 -->
+    <select id="searchNoticesByDate" resultType="noticedto">
+        SELECT * FROM NOTICE
+        WHERE DATE(noticeDate) = DATE(#{noticeDate})
+    </select>
+
+    <!-- 파일 검색 (날짜, 카테고리, 담당자 기준) -->
+    <select id="searchNotices" resultType="noticedto">
+        SELECT * FROM NOTICE
+        WHERE (#{noticeDate} IS NULL OR DATE(noticeDate) = DATE(#{noticeDate}))
+        AND (#{noticeTitle} IS NULL OR noticeTitle LIKE CONCAT('%', #{noticeTitle}, '%'))
+        AND (#{noticeContent} IS NULL OR noticeContent LIKE CONCAT('%', #{noticeContent}, '%'))
+    </select>
+
+    <!-- notice 활성화/비활성화-->
+    <update id="statusNotice" parameterType="NoticeDTO">
+        UPDATE NOTICE
+        SET noticeStatus = '비활성'
+        WHERE noticeNum = #{noticeNum}
+    </update>
+
+</mapper>

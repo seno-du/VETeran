@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jjangtrio.veteran.ServerApplication.dao.ItemhistoryDAO">
+
+    <!-- 재고 등록 -->
+    <insert id="insertItemhistory" parameterType="itemhistorydto"> 
+        INSERT INTO ITEMHISTORY
+            (itemId,locationId,historyQuantity,transactionType) 
+        VALUES
+            (#{itemId},#{locationId},#{historyQuantity},#{transactionType}) 
+    </insert>
+
+    <!-- 모든 재고 출력 (구역별 포함) -->
+    <select id="selectAll" resultType="map"> 
+        SELECT 
+            i.itemId, 
+            i.itemCategory, 
+            i.itemName, 
+            i.itemPrice, 
+            i.itemState, 
+            COALESCE(SUM(CASE WHEN h.transactionType = '입고' THEN h.historyQuantity ELSE 0 END), 0) 
+                - COALESCE(SUM(CASE WHEN h.transactionType = '출고' THEN h.historyQuantity ELSE 0 END), 0) AS remainingStock, 
+            l.locationName, 
+            COALESCE(SUM(CASE WHEN h.transactionType = '입고' THEN h.historyQuantity ELSE 0 END), 0) 
+                - COALESCE(SUM(CASE WHEN h.transactionType = '출고' THEN h.historyQuantity ELSE 0 END), 0) AS locationStock 
+        FROM ITEM i 
+            LEFT JOIN ITEMHISTORY h ON i.itemId = h.itemId 
+            LEFT JOIN LOCATION l ON h.locationId = l.locationId 
+        GROUP BY 
+            i.itemId, 
+            i.itemCategory, 
+            i.itemName, 
+            i.itemPrice, 
+            i.itemState,
+            l.locationName 
+        LIMIT #{pageSize} OFFSET #{offset} 
+    </select>
+
+    <!-- 아이템 ID로 재고 검색 (전체 재고 + 위치별 재고) -->
+    <select id="selectItemId" parameterType="string" resultType="map"> 
+        SELECT
+            i.itemId, 
+            i.itemName, 
+            i.itemCategory, 
+            i.itemPrice, 
+            i.itemState, 
+            COALESCE(SUM(CASE WHEN h.transactionType = '입고' THEN h.historyQuantity ELSE 0 END), 0) 
+                - COALESCE(SUM(CASE WHEN h.transactionType = '출고' THEN h.historyQuantity ELSE 0 END), 0) AS remainingStock, 
+            l.locationName, 
+            COALESCE(SUM(CASE WHEN h.transactionType = '입고' THEN h.historyQuantity ELSE 0 END), 0) 
+                - COALESCE(SUM(CASE WHEN h.transactionType = '출고' THEN h.historyQuantity ELSE 0 END), 0) AS locationRemainingStock 
+        FROM ITEM i 
+            LEFT JOIN ITEMHISTORY h ON i.itemId = h.itemId 
+            LEFT JOIN LOCATION l ON h.locationId = l.locationId WHERE i.itemId 
+        LIKE CONCAT('%',#{itemId}, '%') 
+        GROUP BY 
+            i.itemId, 
+            i.itemName, 
+            i.itemCategory, 
+            i.itemPrice, 
+            i.itemState,
+            l.locationName 
+    </select>
+
+
+    <!-- 아이템 이름으로 재고 검색 (구역별 포함) -->
+    <select id="selectItemName" parameterType="String" resultType="map"> 
+        SELECT
+            i.itemId, 
+            i.itemName, 
+            i.itemCategory, 
+            i.itemPrice,
+            i.itemState, 
+            COALESCE(SUM(CASE WHEN h.transactionType = '입고' THEN h.historyQuantity ELSE 0 END), 0) 
+                - COALESCE(SUM(CASE WHEN h.transactionType = '출고' THEN h.historyQuantity ELSE 0 END), 0) AS remainingStock,
+            l.locationName, 
+            COALESCE(SUM(CASE WHEN h.transactionType = '입고' THEN h.historyQuantity ELSE 0 END), 0) 
+                - COALESCE(SUM(CASE WHEN h.transactionType = '출고' THEN h.historyQuantity ELSE 0 END), 0) AS locationRemainingStock 
+        FROM ITEM i 
+            LEFT JOIN ITEMHISTORY h ON i.itemId = h.itemId 
+            LEFT JOIN LOCATION l ON h.locationId = l.locationId 
+        WHERE i.itemName LIKE CONCAT('%', #{itemName}, '%') 
+            OR i.itemId LIKE CONCAT('%', #{itemName}, '%') 
+        GROUP BY 
+            i.itemId, 
+            i.itemCategory, 
+            i.itemName, 
+            i.itemPrice, 
+            i.itemState, 
+            l.locationName 
+    </select>
+
+    <!-- 하나의 구역에 대해 모든 아이템 정보와 재고를 출력하는 쿼리 -->
+    <select id="selectStockByLocation" parameterType="String" resultType="map"> 
+        SELECT
+            i.itemId, 
+            i.itemName, 
+            i.itemCategory, 
+            i.itemPrice, 
+            i.itemState, 
+            COALESCE(SUM(CASE WHEN h.transactionType = '입고' THEN h.historyQuantity ELSE 0 END), 0) 
+            - COALESCE(SUM(CASE WHEN h.transactionType = '출고' THEN h.historyQuantity ELSE 0 END), 0) AS totalRemainingStock, 
+            l.locationName, 
+         <!-- 구역 이름 --> 
+            COALESCE(SUM(CASE WHEN h.transactionType = '입고' THEN h.historyQuantity ELSE 0 END), 0) 
+            - COALESCE(SUM(CASE WHEN h.transactionType = '출고' THEN h.historyQuantity ELSE 0 END), 0) AS locationStock 
+         <!-- 구역별 재고 --> 
+        FROM ITEM i 
+            LEFT JOIN ITEMHISTORY h ON i.itemId = h.itemId 
+            LEFT JOIN LOCATION l ON h.locationId = l.locationId WHERE l.locationName = #{locationName} 
+         <!-- 특정 구역 이름으로 필터링 --> 
+        GROUP BY 
+        i.itemId, 
+        i.itemName, 
+        i.itemCategory, 
+        i.itemPrice, 
+        i.itemState, 
+        l.locationName 
+    </select>
+
+    <!-- 하나의 아이템에 대해 각 구역별로 입고된 재고 수를 조회 -->
+    <select id="selectRemainingStockById" parameterType="String" resultType="map"> 
+    SELECT
+        l.locationName, 
+        COALESCE(SUM(CASE WHEN h.transactionType = '입고' THEN h.historyQuantity ELSE 0 END), 0) AS remainingStock 
+    FROM ITEM i 
+        LEFT JOIN ITEMHISTORY h ON i.itemId = h.itemId 
+        LEFT JOIN LOCATION l ON h.locationId = l.locationId 
+    WHERE i.itemId = #{itemId} 
+    GROUP BY l.locationName 
+    </select>
+
+    <select id="countItem" resultType="Long">
+        select COUNT(*) from ITEM 
+    </select>
+
+    <select id="findItemHistoryByChart" parameterType="Long" resultType="map">
+    SELECT 
+        ih.historyNum,
+        i.itemId,
+        i.itemName,
+        i.itemPrice,
+        ih.historyQuantity,
+        ih.transactionType,
+        ih.transactionDate
+    FROM ITEMHISTORY ih
+    JOIN ITEM i ON ih.itemId = i.itemId
+    WHERE ih.itemId IN (SELECT itemId FROM CHART WHERE chartNum = #{chartNum})
+</select>
+<select id="findBillingItems" resultType="map">
+        SELECT 
+            itemhistory.historyNum,
+            chart.chartNum,
+            chart.chartNote,
+            itemhistory.itemId,
+            (SELECT item.itemPrice * itemhistory.historyQuantity) AS 청구금액,
+            item.itemId AS 아이템ID,
+            item.itemPrice AS 제품가격,
+            itemhistory.historyQuantity AS 수량
+        FROM CHARTLOG chartlog
+        JOIN CHART chart ON chart.chartNum = chartlog.chartNum
+        JOIN ITEMHISTORY itemhistory ON itemhistory.historyNum = chartlog.historyNum
+        JOIN ITEM item ON item.itemId = itemhistory.itemId
+        WHERE chartlog.chartNum = #{chartNum}
+</select>
+
+<select id="selectEndHistory" resultType="Long">select historyNum from ITEMHISTORY ORDER BY historyNum DESC LIMIT 1</select>
+
+
+</mapper>
